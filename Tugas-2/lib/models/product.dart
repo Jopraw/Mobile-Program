@@ -129,6 +129,7 @@ void main(){
     stock: 10,
   );
   produk1.displayProduct();
+  print('    Status: ${produk1.getStatusStok()}');
 
   // Membuat objek dari Class turunan (DiscountedProduct)
   DiscountedProduct produk2 = DiscountedProduct(
@@ -142,6 +143,39 @@ void main(){
     discountPercent: 20,
   );
   produk2.displayProduct();
+  print('    Status: ${produk2.getStatusStok()}');
+
+  // ===== TUGAS MANDIRI =====
+  print('\n--- Tugas Mandiri ---');
+
+  // Tugas 2: List<Product> berisi minimal 8 produk dummy
+  List<Product> daftarProduk = [
+    Product(id: 1, name: 'Kipas Angin Mini', price: 150000.0, imageUrl: 'kipas.png', category: 'Elektronik', stock: 10),
+    Product(id: 2, name: 'Kemeja Flannel', price: 250000.0, imageUrl: 'kemeja.png', category: 'Fashion', stock: 5, description: 'Kemeja kotak-kotak bahan halus'),
+    Product(id: 3, name: 'Mie Instan Box', price: 95000.0, imageUrl: 'mie.png', category: 'Makanan', stock: 50),
+    Product(id: 4, name: 'Headset Gaming', price: 350000.0, imageUrl: 'headset.png', category: 'Elektronik', stock: 8, description: 'Headset surround sound 7.1'),
+    Product(id: 5, name: 'Celana Jeans Slim', price: 280000.0, imageUrl: 'jeans.png', category: 'Fashion', stock: 0),
+    Product(id: 6, name: 'Kopi Arabika 250g', price: 75000.0, imageUrl: 'kopi.png', category: 'Makanan', stock: 30),
+    Product(id: 7, name: 'Mouse Wireless', price: 120000.0, imageUrl: 'mouse.png', category: 'Elektronik', stock: 2, description: 'Mouse ergonomis hemat baterai'),
+    Product(id: 8, name: 'Tas Ransel', price: 450000.0, imageUrl: 'tas.png', category: 'Fashion', stock: 12, description: 'Tas anti air cocok untuk travelling'),
+  ];
+
+  print('\nDaftar 8 Produk TokoKita:');
+  for (var p in daftarProduk) {
+    // Tugas 1: Menggunakan method getStatusStok()
+    print('  [${p.id}] ${p.name} - ${formatRupiah(p.price)} | Stok: ${p.stock} -> ${p.getStatusStok()}');
+  }
+
+  // Tugas 3: Function hitungTotalBelanja
+  // Simulasi keranjang belanja: ambil produk ke-0, 3, dan 7
+  List<Product> keranjang = [daftarProduk[0], daftarProduk[3], daftarProduk[7]];
+  double totalKeranjang = hitungTotalBelanja(keranjang);
+
+  print('\nKeranjang Belanja:');
+  for (var item in keranjang) {
+    print('  - ${item.name}: ${formatRupiah(item.price)}');
+  }
+  print('Total Belanja: ${formatRupiah(totalKeranjang)}');
 
 } // Akhir dari fungsi main()
 
@@ -155,6 +189,15 @@ double hitungHargaSetelahDiskon(double harga, {int persenDiskon = 0}) {
 
 // 3. Arrow Function (function yang ringkas hanya 1 baris)
 String formatRupiah(double harga) => 'Rp ${harga.toStringAsFixed(0)}';
+
+// Tugas Mandiri 3: Function untuk menghitung total belanja dari list produk
+double hitungTotalBelanja(List<Product> keranjang) {
+  double total = 0;
+  for (var produk in keranjang) {
+    total += produk.price;
+  }
+  return total;
+}
 
 // --- Langkah 5: Class & Null Safety (DI LUAR MAIN) ---
 
@@ -178,6 +221,17 @@ class Product {
     required this.stock,
     this.description, // tidak wajib (required) karena nullable
   });
+
+  // Tugas Mandiri 1: Method getStatusStok()
+  String getStatusStok() {
+    if (stock > 10) {
+      return 'Tersedia Banyak';
+    } else if (stock > 0) {
+      return 'Stok Terbatas';
+    } else {
+      return 'Habis';
+    }
+  }
 
   // Method untuk menampilkan info produk
   void displayProduct() {
