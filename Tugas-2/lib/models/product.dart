@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print, dead_code
+
 void main(){
   var deskripsiProduk = "Handpicked Top Grade Quality Goods";
   final String kodeProduk = "PRD-01";
@@ -12,7 +14,9 @@ void main(){
 
   print('----DETAIL PRODUK----');
   print('Nama Toko    : $namaToko');
+  print('Kode Produk  : $kodeProduk');
   print('Nama Produk  : $namaProduk');
+  print('Deskripsi    : $deskripsiProduk');
   print('Harga Produk : $hargaProduk');
   print('Stok Produk  : $stokProduk');
   print('Status Produk: ${statusProduk ? "Tersedia" : "Habis"}');

@@ -5,7 +5,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tokokita/main.dart';
 import 'package:tokokita/models/product.dart';
 import 'package:tokokita/services/product_service.dart';
 import 'package:tokokita/screens/home_page.dart';

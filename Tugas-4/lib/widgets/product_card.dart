@@ -36,13 +36,13 @@ class _ProductCardState extends State<ProductCard> {
   void initState() {
     super.initState();
     // dipanggil SEKALI saat widget pertama kali dibuat
-    print('initState() → ${widget.product.name}');
+    debugPrint('initState() → ${widget.product.name}');
   }
 
   @override
   void dispose() {
     // dipanggil saat widget dihapus dari widget tree
-    print('dispose() → ${widget.product.name}');
+    debugPrint('dispose() → ${widget.product.name}');
     super.dispose();
   }
 
@@ -68,7 +68,7 @@ class _ProductCardState extends State<ProductCard> {
 
   @override
   Widget build(BuildContext context) {
-    print('build() → ${widget.product.name}');
+    debugPrint('build() → ${widget.product.name}');
 
     // ── Langkah 2: Container sebagai pembungkus utama ──
     // Container memberi margin antar kartu, warna latar, sudut
@@ -243,7 +243,7 @@ class _ProductCardState extends State<ProductCard> {
                 setState(() {
                   isFavorite = !isFavorite;
                 });
-                print(
+                debugPrint(
                   'Favorit ditekan! ${widget.product.name} → $isFavorite',
                 );
               },

@@ -32,14 +32,14 @@ class _ProductCardState extends State<ProductCard> {
   void initState() {
     super.initState();
     // initState() dipanggil SEKALI saat widget pertama kali dibuat
-    print('initState() dipanggil untuk: ${widget.product.name}');
+    debugPrint('initState() dipanggil untuk: ${widget.product.name}');
   }
 
   @override
   Widget build(BuildContext context) {
     // build() dipanggil setiap kali widget perlu digambar ulang
     // (termasuk setelah setState() dipanggil)
-    print('build() dipanggil untuk: ${widget.product.name}');
+    debugPrint('build() dipanggil untuk: ${widget.product.name}');
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -105,7 +105,7 @@ class _ProductCardState extends State<ProductCard> {
                 setState(() {
                   isFavorite = !isFavorite;
                 });
-                print(
+                debugPrint(
                   'Tombol favorit ditekan! ${widget.product.name} '
                   '-> isFavorite: $isFavorite',
                 );
@@ -125,7 +125,7 @@ class _ProductCardState extends State<ProductCard> {
   @override
   void dispose() {
     // dispose() dipanggil saat widget dihapus dari widget tree secara permanen
-    print('dispose() dipanggil untuk: ${widget.product.name}');
+    debugPrint('dispose() dipanggil untuk: ${widget.product.name}');
     super.dispose();
   }
 }
