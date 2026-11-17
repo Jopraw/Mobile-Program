@@ -17,9 +17,8 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
-      // Ambil 15 item pertama agar daftar rapi dan ringan ditampilkan
+      // Mengambil seluruh 100 post dari JSONPlaceholder
       return jsonList
-          .take(15)
           .map((item) => Post.fromJson(item as Map<String, dynamic>))
           .toList();
     } else {
