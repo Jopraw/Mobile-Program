@@ -11,7 +11,7 @@ class Post {
     required this.body,
   });
 
-  /// Mengubah data Map JSON dari API menjadi objek Post (dipakai saat GET / POST / PUT)
+  /// Mengubah data Map JSON menjadi objek Post (dipakai saat GET / POST / PUT & Cache Lokal)
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
       id: json['id'] as int,
@@ -20,9 +20,10 @@ class Post {
     );
   }
 
-  /// Mengubah objek Post menjadi Map JSON untuk dikirim ke API (dipakai saat POST / PUT)
+  /// Mengubah objek Post menjadi Map JSON (dipakai saat kirim ke API & simpan Cache Lokal)
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'title': title,
       'body': body,
       'userId': 1,

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/post.dart';
 import '../services/api_service.dart';
 
@@ -14,6 +16,8 @@ class PostPage extends StatefulWidget {
 }
 
 class _PostPageState extends State<PostPage> {
+  static const String _storageKey = 'cached_posts_v1';
+
   late final ApiService _api;
   final List<Post> _posts = [];
   bool _isLoading = true;
@@ -23,11 +27,53 @@ class _PostPageState extends State<PostPage> {
   void initState() {
     super.initState();
     _api = widget.apiService ?? ApiService();
-    _fetchPosts();
+    _loadInitialPosts();
   }
 
-  // ── 1. READ: Ambil data dari API saat halaman dibuka ──
-  Future<void> _fetchPosts() async {
+  // Membaca dari penyimpanan lokal terlebih dahulu agar data yang ditambah/diedit
+  // tidak hilang saat aplikasi di-restart. Jika belum ada, ambil dari API.
+  Future<void> _loadInitialPosts() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedJson = prefs.getString(_storageKey);
+
+      if (savedJson != null && savedJson.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(savedJson);
+        final cachedPosts = decoded
+            .map((e) => Post.fromJson(e as Map<String, dynamic>))
+            .toList();
+        if (!mounted) return;
+        setState(() {
+          _posts
+            ..clear()
+            ..addAll(cachedPosts);
+          _isLoading = false;
+        });
+        return;
+      }
+    } catch (_) {
+      // Jika cache gagal dibaca, lanjut ambil dari API
+    }
+
+    await _fetchFromServer();
+  }
+
+  // Menyimpan perubahan daftar _posts ke penyimpanan lokal
+  Future<void> _saveToLocalCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded = jsonEncode(_posts.map((p) => p.toJson()).toList());
+      await prefs.setString(_storageKey, encoded);
+    } catch (_) {}
+  }
+
+  // ── 1. READ: Ambil ulang 100 data asli dari server JSONPlaceholder ──
+  Future<void> _fetchFromServer({bool showNotif = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -42,6 +88,10 @@ class _PostPageState extends State<PostPage> {
           ..addAll(data);
         _isLoading = false;
       });
+      await _saveToLocalCache();
+      if (showNotif) {
+        _showSnack('Data di-reset ke 100 Post asli server (GET 200)', Colors.indigo);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -79,7 +129,6 @@ class _PostPageState extends State<PostPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Garis indikator kecil di atas sheet
                   Center(
                     child: Container(
                       width: 40,
@@ -171,13 +220,12 @@ class _PostPageState extends State<PostPage> {
     );
   }
 
-  // Eksekusi CREATE ke API lalu tambahkan ke urutan teratas List
+  // Eksekusi CREATE ke API lalu tambahkan ke urutan teratas List & simpan lokal
   Future<void> _handleCreate(String title, String body) async {
     try {
       final created = await _api.createPost(title, body);
       if (!mounted) return;
       setState(() {
-        // Beri ID unik berurutan agar mudah dibedakan di UI
         final nextId = _posts.isEmpty
             ? 1
             : (_posts.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
@@ -186,13 +234,14 @@ class _PostPageState extends State<PostPage> {
           Post(id: nextId, title: created.title, body: created.body),
         );
       });
-      _showSnack('Post berhasil ditambahkan (POST 201)', Colors.green.shade700);
+      await _saveToLocalCache();
+      _showSnack('Post berhasil ditambahkan & disimpan (POST 201)', Colors.green.shade700);
     } catch (e) {
       _showSnack('Gagal menambah post: $e', Colors.red.shade700);
     }
   }
 
-  // Eksekusi UPDATE ke API lalu perbarui item di dalam List
+  // Eksekusi UPDATE ke API lalu perbarui item di dalam List & simpan lokal
   Future<void> _handleUpdate(int id, String title, String body) async {
     try {
       final updated = await _api.updatePost(id, title, body);
@@ -203,13 +252,14 @@ class _PostPageState extends State<PostPage> {
           _posts[index] = updated;
         }
       });
-      _showSnack('Post #$id berhasil diperbarui (PUT 200)', Colors.indigo);
+      await _saveToLocalCache();
+      _showSnack('Post #$id berhasil diperbarui & disimpan (PUT 200)', Colors.indigo);
     } catch (e) {
       _showSnack('Gagal mengubah post: $e', Colors.red.shade700);
     }
   }
 
-  // ── 4. DELETE: Hapus data di API lalu hapus dari List ──
+  // ── 4. DELETE: Hapus data di API lalu hapus dari List & simpan lokal ──
   Future<void> _handleDelete(Post post) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -239,6 +289,7 @@ class _PostPageState extends State<PostPage> {
       setState(() {
         _posts.removeWhere((item) => item.id == post.id);
       });
+      await _saveToLocalCache();
       _showSnack('Post #${post.id} berhasil dihapus (DELETE 200)', Colors.red.shade700);
     } catch (e) {
       _showSnack('Gagal menghapus post: $e', Colors.red.shade700);
@@ -273,8 +324,8 @@ class _PostPageState extends State<PostPage> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Muat Ulang dari Server (GET)',
-            onPressed: _fetchPosts,
+            tooltip: 'Reset ke 100 Data Asli Server (GET)',
+            onPressed: () => _fetchFromServer(showNotif: true),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -347,7 +398,7 @@ class _PostPageState extends State<PostPage> {
                               Text(_errorMessage!, textAlign: TextAlign.center),
                               const SizedBox(height: 16),
                               FilledButton.icon(
-                                onPressed: _fetchPosts,
+                                onPressed: _fetchFromServer,
                                 icon: const Icon(Icons.refresh),
                                 label: const Text('Coba Lagi'),
                               ),
@@ -357,6 +408,10 @@ class _PostPageState extends State<PostPage> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+                        // itemExtent mengunci tinggi tiap item (152px) sehingga
+                        // saat scrollbar ditarik jauh dari atas ke bawah, Flutter
+                        // tidak perlu menghitung ulang 100 kartu satu per satu (0 lag!).
+                        itemExtent: 152,
                         itemCount: _posts.length,
                         itemBuilder: (context, index) {
                           final post = _posts[index];
@@ -380,12 +435,12 @@ class _PostPageState extends State<PostPage> {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+        side: BorderSide(color: Color(0xFFE5E7EB)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -396,7 +451,7 @@ class _PostPageState extends State<PostPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: const BorderRadius.all(Radius.circular(8)),
                   ),
                   child: Text(
                     'POST #${post.id}',
@@ -408,40 +463,49 @@ class _PostPageState extends State<PostPage> {
                   ),
                 ),
                 const Spacer(),
-                // Tombol Edit (UPDATE / PUT)
+                // Tombol Edit (UPDATE / PUT) — tanpa Tooltip berat agar scroll cepat 60fps
                 IconButton(
-                  tooltip: 'Edit Post',
                   visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   onPressed: () => _showFormDialog(post: post),
                   icon: Icon(Icons.edit_outlined, size: 20, color: colorScheme.primary),
                 ),
+                const SizedBox(width: 4),
                 // Tombol Hapus (DELETE)
                 IconButton(
-                  tooltip: 'Hapus Post',
                   visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   onPressed: () => _handleDelete(post),
-                  icon: Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red.shade600),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Color(0xFFE53935)),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            // Judul Post
+            const SizedBox(height: 6),
+            // Judul Post (maksimal 1 baris agar tinggi kartu seragam & bebas lag)
             Text(
               post.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1E293B),
               ),
             ),
-            const SizedBox(height: 6),
-            // Isi Post
-            Text(
-              post.body,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.4,
-                color: Colors.grey.shade700,
+            const SizedBox(height: 4),
+            // Isi Post (maksimal 2 baris)
+            Expanded(
+              child: Text(
+                post.body.replaceAll('\n', ' '),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: Color(0xFF64748B),
+                ),
               ),
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crud_posts_app/models/post.dart';
 import 'package:crud_posts_app/services/api_service.dart';
 import 'package:crud_posts_app/screens/post_page.dart';
@@ -29,6 +30,7 @@ class FakeApiService extends ApiService {
 
 void main() {
   testWidgets('CRUD PostPage: Read, Create, Update, dan Delete berjalan lancar', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       MaterialApp(
         home: PostPage(apiService: FakeApiService()),
